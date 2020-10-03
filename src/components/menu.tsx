@@ -7,9 +7,9 @@ import * as Animatable from 'react-native-animatable';
 
 interface MainMenuProps {
   gamesPlayed: number;
-  lastScore: string;
-  topScore: string;
-  topScoreBricks: string;
+  lastScore: number;
+  topScore: number;
+  topScoreBricks: number;
   onPlayGame: (gameMode: GameMode) => void;
 }
 
