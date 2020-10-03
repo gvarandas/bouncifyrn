@@ -5884,10 +5884,10 @@ react-native-animatable@^1.3.2:
   dependencies:
     prop-types "^15.5.10"
 
-react-native-game-engine@^0.10.1:
-  version "0.10.1"
-  resolved "https://registry.yarnpkg.com/react-native-game-engine/-/react-native-game-engine-0.10.1.tgz#3c8592ad6fbf405fdb8716f7212eae5bb457bdd9"
-  integrity sha512-Zp8IxcpRrHl4k/BLPe0Gnzw0ESlAOZChYp6jeKjhGxQLYzN2nn4hklEYujlW8Be4/LEnMGXes+8EDoik14H17w==
+react-native-game-engine@^1.2.0:
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/react-native-game-engine/-/react-native-game-engine-1.2.0.tgz#a1a049cf9ab9a60607618cafcef8648429f4a817"
+  integrity sha512-SZwvxh0qN5HxuREL733B2VrtsadoSiN0RxulGaJu8OC3LTeliQM7whGQREtoBLo2tQ9iIzyzhiMSTzLCvmEJWg==
   dependencies:
     rxjs "^6.2.2"
 
