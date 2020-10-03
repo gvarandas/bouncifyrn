@@ -25,7 +25,7 @@ import {GameMode} from './config';
 
 interface GameProps {
   topScore: number;
-  mode: number;
+  mode: GameMode;
   visible: boolean;
   onClose: (lastScore: number) => unknown;
 }
