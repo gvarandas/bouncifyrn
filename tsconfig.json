@@ -9,6 +9,7 @@
 
     /* Additional Checks */
     "lib": ["esnext"],
+    "resolveJsonModule": true,
 
     /* Module Resolution Options */
     "allowSyntheticDefaultImports": true,

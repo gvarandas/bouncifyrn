@@ -2,6 +2,7 @@ import React, {useEffect, useState} from 'react';
 import {View, StyleSheet} from 'react-native';
 import MainMenu from './components/menu';
 import AsyncStorage from '@react-native-community/async-storage';
+
 import BouncifyGame from './game';
 import {GameMode} from './config';
 import utils from './utils';

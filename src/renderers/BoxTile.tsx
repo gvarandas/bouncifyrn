@@ -45,6 +45,7 @@ const BoxTile = ({row, col, explode, hits}: BoxTileProps) => {
           {
             backgroundColor: color,
             transform: [{translateY: animateTop}],
+            // top: animateTop,
             width: Sizing.BOX_TILE_SIZE,
             height: Sizing.BOX_TILE_SIZE,
             left: x,

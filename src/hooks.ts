@@ -7,7 +7,7 @@ const useAnimatedValue = (initialValue: number) => {
   return ref.current;
 };
 
-const useOpacityPulse = (speed = 50) => {
+const useOpacityPulse = (speed = 50): [Animated.Value, () => void] => {
   const opacity = useAnimatedValue(0);
 
   const pulse = () => {
@@ -30,7 +30,9 @@ const useOpacityPulse = (speed = 50) => {
   return [opacity, pulse];
 };
 
-const useAnimateRow = (row = 0) => {
+const useAnimateRow = (
+  row = 0
+): [Animated.Value, React.Dispatch<React.SetStateAction<number>>] => {
   const [rowPosition, setRowPosition] = useState(row);
   const animatedTop = useAnimatedValue(Utils.rowToTopPosition(row - 1));
 
@@ -39,7 +41,7 @@ const useAnimateRow = (row = 0) => {
       useNativeDriver: true,
       toValue: Utils.rowToTopPosition(rowPosition),
       bounciness: 18,
-      speed: 8,
+      speed: 4,
     }).start();
   }, [animatedTop, rowPosition]);
 
@@ -88,16 +90,16 @@ const useRadiusPulse = (radius1 = 14, radius2 = 12, delay = 100) => {
     Animated.loop(
       Animated.sequence([
         Animated.timing(animatedRadius, {
+          useNativeDriver: true,
           toValue: radius1,
           duration: delay,
           easing: Easing.linear,
-          useNativeDriver: true,
         }),
         Animated.timing(animatedRadius, {
+          useNativeDriver: true,
           toValue: radius2,
           duration: delay,
           easing: Easing.linear,
-          useNativeDriver: true,
         }),
       ])
     ).start();
@@ -110,7 +112,7 @@ const useRadiusPulse = (radius1 = 14, radius2 = 12, delay = 100) => {
   return radius.current;
 };
 
-const useAnimateDrop = (duration: number) => {
+const useAnimateDrop = (duration: number): [Animated.Value, () => void] => {
   const top = useAnimatedValue(0);
 
   const drop = () => {
@@ -125,7 +127,10 @@ const useAnimateDrop = (duration: number) => {
   return [top, drop];
 };
 
-const useAnimateCollecting = (duration1: number, duration2: number) => {
+const useAnimateCollecting = (
+  duration1: number,
+  duration2: number
+): [Animated.Value, () => void] => {
   const top = useAnimatedValue(0);
 
   const collect = () => {

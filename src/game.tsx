@@ -1,16 +1,6 @@
-/**
- * This may be a terrible idea, but trying to build a game in react native that
- * will be fun to play.
- *
- * @format
- * @lint-ignore-every XPLATJSCOPYRIGHT1
- */
-
 import React, {useState, useEffect, useRef} from 'react';
 import {StyleSheet, Modal} from 'react-native';
-// @ts-ignore - react-native-game-engine has no TS definitions
 import {GameEngine} from 'react-native-game-engine';
-// import {Ball, Floor, ScoreBar, SpeedUpButton} from './renderers';
 import {
   StartGame,
   MoveBall,
@@ -20,7 +10,7 @@ import {
   CreateBallTail,
   SpeedUp,
 } from './systems';
-import Utils from './utils';
+import Utils, {ScoreBarEntity} from './utils';
 import {GameMode} from './config';
 
 interface GameProps {
@@ -40,16 +30,16 @@ export default function BouncifyGame(props: GameProps) {
   }, [props.visible]);
 
   useEffect(() => {
-    entities.current.scorebar.mode = props.mode;
+    (entities.current.scorebar as ScoreBarEntity).mode = props.mode;
     if (props.mode === GameMode.MODE_BRICKS) {
-      entities.current.scorebar.balls = 75;
+      (entities.current.scorebar as ScoreBarEntity).balls = 75;
     } else {
-      entities.current.scorebar.balls = 1;
+      (entities.current.scorebar as ScoreBarEntity).balls = 1;
     }
   }, [props.mode]);
 
   useEffect(() => {
-    entities.current.scorebar.best = props.topScore;
+    (entities.current.scorebar as ScoreBarEntity).best = props.topScore;
   }, [props.topScore]);
 
   const gameOver = (score: number) => {
@@ -57,8 +47,8 @@ export default function BouncifyGame(props: GameProps) {
 
     setTimeout(() => {
       setRunning(false);
-      entities.current.scorebar.level = 0;
-      entities.current.scorebar.balls = 1;
+      (entities.current.scorebar as ScoreBarEntity).level = 0;
+      (entities.current.scorebar as ScoreBarEntity).balls = 1;
       if (props.onClose) {
         props.onClose(lastScore);
       }

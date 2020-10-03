@@ -1,22 +1,68 @@
 import {Ball, AimLine, BoxTile, BallPowerUp} from './renderers';
-import Utils from './utils';
+import Utils, {
+  BallEntity,
+  BoxEntity,
+  FloorEntity,
+  GameEntities,
+  ScoreBarEntity,
+  SpeedButtonEntity,
+} from './utils';
 import Levels from './brick_levels';
 import {CollisionDetection, Sizing, GameState, GameMode} from './config';
+import {NativeTouchEvent} from 'react-native';
 
-function speedUpBalls(entities, speed_multiplier) {
+interface Screen {
+  fontScale: number;
+  scale: number;
+  height: number;
+  width: number;
+}
+
+interface TouchEvent {
+  id: number;
+  type: string;
+  delta: {
+    locationX: number;
+    locationY: number;
+    pageX: number;
+    pageY: number;
+    timestamp: number;
+  };
+  event: NativeTouchEvent;
+}
+
+interface GameTime {
+  current: number;
+  delta: number;
+  previous: number;
+  previousDelta: number;
+}
+
+type Dispatch = ({type, score}: {type: string; score: number}) => void;
+
+interface SystemEventConfig {
+  screen: Screen;
+  touches: TouchEvent[];
+  time: GameTime;
+  dispatch: Dispatch;
+}
+
+type GameSystem = (entities: GameEntities, config: SystemEventConfig) => void;
+
+function speedUpBalls(entities: GameEntities, speed_multiplier: number) {
   Object.keys(entities).forEach((ballId) => {
-    let ball = entities[ballId];
     if (!ballId.startsWith('ball')) return;
+    let ball = entities[ballId] as BallEntity;
     if (ball.state === GameState.STOPPED) return;
     ball.speed.x *= speed_multiplier;
     ball.speed.y *= speed_multiplier;
   });
 }
 
-function collidesWithBox(entities, ball) {
+function collidesWithBox(entities: GameEntities, ball: BallEntity) {
   let boxes = Object.keys(entities).filter((key) => key.startsWith('box'));
   for (var boxId in boxes) {
-    let box = entities[boxes[boxId]];
+    let box = (entities[boxes[boxId]] as unknown) as BoxEntity;
     if (box.explode) {
       continue;
     }
@@ -50,12 +96,12 @@ function collidesWithBox(entities, ball) {
       if (box.type && box.type === 'powerup') {
         collision = CollisionDetection.NO_COLLISION;
         if (!box.falling) {
-          entities.scorebar.new_balls++;
+          (entities.scorebar as ScoreBarEntity).new_balls++;
           box.falling = true;
         }
       } else {
         box.hits--;
-        entities.floor.current_hits++;
+        (entities.floor as FloorEntity).current_hits++;
         if (box.hits <= 0) {
           box.explode = true;
         }
@@ -67,9 +113,9 @@ function collidesWithBox(entities, ball) {
   return CollisionDetection.NO_COLLISION;
 }
 
-function moveToNextLevelWithDelay(entities, dispatch) {
+function moveToNextLevelWithDelay(entities: GameEntities, dispatch: Dispatch) {
   let delay = 100;
-  if (entities.scorebar.new_balls > 0) {
+  if ((entities.scorebar as ScoreBarEntity).new_balls > 0) {
     // if powerups are on the floor, wait a bit longer for animation
     // before going to next level
     delay = 750;
@@ -80,8 +126,10 @@ function moveToNextLevelWithDelay(entities, dispatch) {
   }, delay);
 }
 
-export function moveToNextLevel(entities, dispatch) {
-  const {scorebar, ball, speedbutton, floor} = entities;
+export function moveToNextLevel(entities: GameEntities, dispatch: Dispatch) {
+  const scorebar = entities.scorebar as ScoreBarEntity;
+  const ball = entities.ball as BallEntity;
+  const speedbutton = entities.speedbutton as SpeedButtonEntity;
   let boxes = Object.keys(entities).filter((key) => key.startsWith('box'));
   let max_row = 0;
 
@@ -90,7 +138,7 @@ export function moveToNextLevel(entities, dispatch) {
   speedbutton.available = false;
   speedbutton.speed = 1;
   scorebar.balls_in_play = 0;
-  scorebar.balls += entities.scorebar.new_balls;
+  scorebar.balls += scorebar.new_balls;
   scorebar.new_balls = 0;
   // save next start position to ball trail
   ball.start = Utils.clonePosition(ball.position);
@@ -99,7 +147,7 @@ export function moveToNextLevel(entities, dispatch) {
   // advance boxes still in the game
   let dead_boxes = [];
   for (var boxId in boxes) {
-    let box = entities[boxes[boxId]];
+    let box = (entities[boxes[boxId]] as unknown) as BoxEntity;
     if (box) {
       if (box.explode) {
         dead_boxes.push(boxes[boxId]);
@@ -110,8 +158,8 @@ export function moveToNextLevel(entities, dispatch) {
       }
     }
   }
-  dead_boxes.forEach((boxId) => {
-    delete entities[boxId];
+  dead_boxes.forEach((deadBoxId) => {
+    delete entities[deadBoxId];
   });
   // recalculate the boxes that are left
   boxes = Object.keys(entities).filter((key) => key.startsWith('box'));
@@ -122,7 +170,7 @@ export function moveToNextLevel(entities, dispatch) {
     max_row > CollisionDetection.ROWS
   ) {
     gameover = true;
-  } else if (scorebar.mode == GameMode.MODE_BRICKS && boxes.length > 10) {
+  } else if (scorebar.mode === GameMode.MODE_BRICKS && boxes.length > 10) {
     gameover = true;
   }
   if (gameover) {
@@ -133,7 +181,7 @@ export function moveToNextLevel(entities, dispatch) {
 
   // Keep going to next level
   scorebar.level++;
-  if (scorebar.mode == GameMode.MODE_BRICKS) {
+  if (scorebar.mode === GameMode.MODE_BRICKS) {
     // clear all boxes and add entire new level
     for (var boxId in boxes) {
       delete entities[boxes[boxId]];
@@ -143,12 +191,12 @@ export function moveToNextLevel(entities, dispatch) {
     // more hits required.
     scorebar.balls += 25;
     let level = Levels[Utils.randomValueRounded(0, Levels.length - 1)];
-    for (j = 0; j < CollisionDetection.ROWS; j++) {
-      for (i = 0; i < CollisionDetection.COLUMS; i++) {
-        if (level[j][i] == 0) continue;
+    for (let j = 0; j < CollisionDetection.ROWS; j++) {
+      for (let i = 0; i < CollisionDetection.COLUMNS; i++) {
+        if (level[j][i] === 0) continue;
         let key = Utils.randomKey();
         let new_hits = Utils.randomValueRounded(3, scorebar.balls / 2);
-        entities['box' + key] = {
+        entities[`box${key}`] = {
           row: j + 1,
           col: i,
           explode: false,
@@ -161,8 +209,8 @@ export function moveToNextLevel(entities, dispatch) {
   } else {
     // create new row of boxes and power-ups
     let powerup = false;
-    let cols = CollisionDetection.COLUMS;
-    for (i = 0; i < cols; i++) {
+    let cols = CollisionDetection.COLUMNS;
+    for (let i = 0; i < cols; i++) {
       let key = Utils.randomKey();
       let col = i;
       let new_hits = Utils.randomValueRounded(
@@ -170,7 +218,7 @@ export function moveToNextLevel(entities, dispatch) {
         scorebar.balls * 3
       );
       if (Utils.randomRoll(70)) {
-        if (!powerup && (Utils.randomRoll(50) || i == cols - 1)) {
+        if (!powerup && (Utils.randomRoll(50) || i === cols - 1)) {
           entities['box' + key] = {
             row: 1,
             col: col,
@@ -195,63 +243,66 @@ export function moveToNextLevel(entities, dispatch) {
   countPointsInLevel(entities);
 }
 
-function countPointsInLevel(entities) {
+function countPointsInLevel(entities: GameEntities) {
   let boxes = Object.keys(entities).filter((key) => key.startsWith('box'));
   let total_hits = 0;
   for (var boxId in boxes) {
-    let box = entities[boxes[boxId]];
+    let box = (entities[boxes[boxId]] as unknown) as BoxEntity;
     if (box.hits) {
       total_hits += box.hits;
     }
   }
-  entities.floor.total_hits = total_hits;
-  entities.floor.current_hits = 0;
+  (entities.floor as FloorEntity).total_hits = total_hits;
+  (entities.floor as FloorEntity).current_hits = 0;
 }
 
-function deleteFallenBallPowerups(entities) {
+function deleteFallenBallPowerups(entities: GameEntities) {
   let boxes = Object.keys(entities).filter((key) => key.startsWith('box'));
   for (var boxId in boxes) {
-    let box = entities[boxes[boxId]];
-    if (box.type && box.type == 'powerup' && box.falling) {
+    let box = (entities[boxes[boxId]] as unknown) as BoxEntity;
+    if (box.type && box.type === 'powerup' && box.falling) {
       delete entities[boxes[boxId]];
     }
   }
 }
 
-function cleanUpAfterGame(entities) {
+function cleanUpAfterGame(entities: GameEntities) {
   Object.keys(entities).forEach((id) => {
     if (id.startsWith('box')) {
       delete entities[id];
-    } else if (id.startsWith('ball') && !id == 'ball') {
+    } else if (id.startsWith('ball') && id !== 'ball') {
       delete entities[id];
     }
   });
 }
 
-function animateFallenPowerups(entities) {
-  const {ball} = entities;
+function animateFallenPowerups(entities: GameEntities) {
   let boxes = Object.keys(entities).filter((key) => key.startsWith('box'));
   for (var boxId in boxes) {
-    let box = entities[boxes[boxId]];
-    if (box.type && box.type == 'powerup' && box.falling) {
-      entities[boxes[boxId]].collecting = true;
-      entities[boxes[boxId]].slidePosition = ball.position.x;
+    let box = (entities[boxes[boxId]] as unknown) as BoxEntity;
+    if (box.type && box.type === 'powerup' && box.falling) {
+      box.collecting = true;
+      box.slidePosition = (entities.ball as BallEntity).position.x;
     }
   }
 }
 
-const StartGame = (entities, dispatch) => {
+const StartGame = (entities: GameEntities, dispatch: Dispatch) => {
   const {scorebar} = entities;
-  if (scorebar.state === GameState.STOPPED && scorebar.level === 0) {
+  if (
+    (scorebar as ScoreBarEntity).state === GameState.STOPPED &&
+    (scorebar as ScoreBarEntity).level === 0
+  ) {
     moveToNextLevel(entities, dispatch);
   }
   return entities;
 };
 
-const MoveBall = (entities, {screen, dispatch}) => {
-  const {scorebar, floor, ball} = entities;
+const MoveBall: GameSystem = (entities: GameEntities, {screen, dispatch}) => {
+  const scorebar = entities.scorebar as ScoreBarEntity;
+  const floor = entities.floor as FloorEntity;
   Object.keys(entities).forEach((ballId) => {
-    let ball = entities[ballId];
+    let ball = (entities[ballId] as unknown) as BallEntity;
     if (!ballId.startsWith('ball')) return;
     if (ball.state === GameState.STOPPED) return;
 
@@ -264,7 +315,7 @@ const MoveBall = (entities, {screen, dispatch}) => {
     let isCollision = collidesWithBox(entities, ball);
 
     // Test box collision before walls
-    if (isCollision == CollisionDetection.SIDE) {
+    if (isCollision === CollisionDetection.SIDE) {
       next_direction.x *= -1;
     } else if (
       next_position.x > screen.width - Sizing.RADIUS ||
@@ -273,7 +324,7 @@ const MoveBall = (entities, {screen, dispatch}) => {
       next_direction.x *= -1;
     }
 
-    if (isCollision == CollisionDetection.TOP_BOTTOM) {
+    if (isCollision === CollisionDetection.TOP_BOTTOM) {
       next_direction.y *= -1;
     } else if (next_position.y < Sizing.RADIUS + scorebar.height) {
       next_direction.y *= -1;
@@ -282,9 +333,9 @@ const MoveBall = (entities, {screen, dispatch}) => {
     if (next_position.y > floor.height - Sizing.RADIUS * 2) {
       scorebar.balls_returned++;
       // there's only one ball that is the tracer ball and will remain on the floor while
-      // all other balls will dissapear when they hit the floor.
-      if (ballId == 'ball') {
-        ball.state = GameMode.STOPPED;
+      // all other balls will disappear when they hit the floor.
+      if (ballId === 'ball') {
+        ball.state = GameState.STOPPED;
         // ensure rested nicely on top of floor or not outside of sidewalls
         if (next_position.x > screen.width - Sizing.RADIUS * 2) {
           next_position.x = screen.width - Sizing.RADIUS * 2;
@@ -323,13 +374,14 @@ const maxLength = 800;
 const minDeg = -88;
 const maxDeg = 88;
 
-const AimBallsStart = (entities, {touches, screen}) => {
-  const {scorebar, ball} = entities;
-  if (scorebar.state == GameState.STOPPED) {
+const AimBallsStart: GameSystem = (entities, {touches}) => {
+  const scorebar = entities.scorebar as ScoreBarEntity;
+  const ball = entities.ball as BallEntity;
+  if (scorebar.state === GameState.STOPPED) {
     touches
       .filter((x) => x.type === 'start')
       .forEach((t) => {
-        // aim vector is the drag gestuve movement while the aim line is the opposite vector
+        // aim vector is the drag gesture movement while the aim line is the opposite vector
         // from the ball towards the direction that the ball will be moving
         let drag_vector = {};
         drag_vector.start = {x: t.event.pageX, y: t.event.pageY};
@@ -382,9 +434,9 @@ const AimBallsStart = (entities, {touches, screen}) => {
   return entities;
 };
 
-const AimBallsRelease = (entities, {time, touches}) => {
+const AimBallsRelease: GameSystem = (entities, {time, touches}) => {
   const {scorebar, ball, aimline} = entities;
-  if (scorebar.state == GameState.STOPPED && aimline && aimline.drag_vector) {
+  if (scorebar.state === GameState.STOPPED && aimline && aimline.drag_vector) {
     touches
       .filter((t) => t.type === 'end')
       .forEach((t) => {
@@ -422,7 +474,7 @@ const AimBallsRelease = (entities, {time, touches}) => {
   return entities;
 };
 
-const CreateBallTail = (entities, {time}) => {
+const CreateBallTail: GameSystem = (entities, {time}) => {
   const {scorebar, ball} = entities;
   if (
     scorebar.state === GameState.STARTED &&
@@ -450,7 +502,7 @@ const CreateBallTail = (entities, {time}) => {
   return entities;
 };
 
-const SpeedUp = (entities, {touches, time}) => {
+const SpeedUp: GameSystem = (entities, {touches, time}) => {
   const {scorebar, speedbutton, ball} = entities;
   if (
     scorebar.state === GameState.STARTED &&
@@ -491,8 +543,8 @@ const SpeedUp = (entities, {touches, time}) => {
  * the new balls will start moving as they are added. Also, to advance to another
  * level press in the middle of the scorebar.
  */
-const SpawnBall = (entities, {touches, screen, dispatch}) => {
-  const {scorebar} = entities;
+const SpawnBall: GameSystem = (entities, {touches, screen, dispatch}) => {
+  const scorebar = entities.scorebar as ScoreBarEntity;
   touches
     .filter((t) => t.type === 'press')
     .forEach((t) => {

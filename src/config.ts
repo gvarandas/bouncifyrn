@@ -1,20 +1,20 @@
-export enum CollisionDetection {
-  NO_COLLISION = 0,
-  SIDE = 1,
-  TOP_BOTTOM = 2,
-  ROWS = 10,
-  COLUMNS = 8,
-}
+export const CollisionDetection = {
+  NO_COLLISION: 0,
+  SIDE: 1,
+  TOP_BOTTOM: 2,
+  ROWS: 10,
+  COLUMNS: 8,
+};
 
-export enum Sizing {
-  RADIUS = 7,
-  SCOREBOARD_HEIGHT = 90,
-  BOX_TILE_SIZE = 40,
-  BOX_TILE_SPACE = 6,
-  FLOOR_HEIGHT = 640,
-  FLOOR_HEIGHT_SIZE = 172,
+export const Sizing = {
+  RADIUS: 7,
+  SCOREBOARD_HEIGHT: 90,
+  BOX_TILE_SIZE: 40,
+  BOX_TILE_SPACE: 6,
+  FLOOR_HEIGHT: 640,
+  FLOOR_HEIGHT_SIZE: 172,
   // 8x9 on most screens, but have to check
-}
+};
 
 export enum GameMode {
   MODE_LINES = 100,

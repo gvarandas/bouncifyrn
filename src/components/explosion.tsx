@@ -2,11 +2,11 @@ import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {Animated, ColorValue, Easing} from 'react-native';
 import BoxPiece, {BoxPieceProps} from './boxpiece';
 import {Sizing} from '../config';
-import utils from '../utils';
+import utils, {Position} from '../utils';
 
 interface ExplosionProps {
   count: number;
-  origin: {x: number; y: number};
+  origin: Position;
   backgroundColor: ColorValue;
   fallSpeed?: number;
 }

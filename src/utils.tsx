@@ -1,36 +1,103 @@
 import React from 'react';
-import {Colors, GameState, Sizing, CollisionDetection} from './config';
+import {
+  Colors,
+  GameState,
+  Sizing,
+  CollisionDetection,
+  GameMode,
+} from './config';
 import {Floor, ScoreBar, Ball, SpeedUpButton} from './renderers';
-import {Dimensions} from 'react-native';
+import {ColorValue, Dimensions} from 'react-native';
+
+export interface Position {
+  x: number;
+  y: number;
+}
+
+export interface FloorEntity {
+  total_hits: number;
+  height: number;
+  current_hits: number;
+  renderer: React.ReactNode;
+}
+
+export interface ScoreBarEntity {
+  height: number;
+  best: number;
+  mode: GameMode;
+  state: GameState;
+  level: number;
+  balls: number;
+  new_balls: number;
+  balls_in_play: number;
+  score: number;
+  renderer: React.ReactNode;
+  balls_returned: number;
+}
+
+export interface BallEntity {
+  color: ColorValue;
+  state: GameState;
+  start: Position;
+  position: Position;
+  speed: Position;
+  direction: Position;
+  renderer: React.ReactNode;
+}
+
+export interface SpeedButtonEntity {
+  available: boolean;
+  speed: number;
+  row: number;
+  column: number;
+  renderer: React.ReactNode;
+}
+
+export interface BoxEntity {
+  row: number;
+  col: number;
+  type?: string;
+  explode: boolean;
+  explosionComplete: boolean;
+  falling?: boolean;
+  collecting?: boolean;
+  hits: number;
+  renderer: React.ReactNode;
+  slidePosition: number;
+}
+
+export type GameEntities = {
+  [key: string]: FloorEntity | ScoreBarEntity | SpeedButtonEntity | BallEntity;
+};
 
 const utils = {
-  getDistance: function (p1, p2) {
+  getDistance: function (p1: Position, p2: Position) {
     return Math.sqrt(
       Math.abs(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2))
     );
   },
 
-  getPointsDeltas: function (p1, p2) {
+  getPointsDeltas: function (p1: Position, p2: Position): Position {
     return {x: p2.x - p1.x, y: p2.y - p1.y};
   },
 
-  clonePosition: function (position) {
+  clonePosition: function (position: Position): Position {
     return {x: position.x, y: position.y};
   },
 
-  newPosition: function (x_val, y_val) {
+  newPosition: function (x_val: number, y_val: number): Position {
     return {x: x_val, y: y_val};
   },
 
-  randomValue: function (min, max) {
+  randomValue: function (min: number, max: number) {
     return Math.random() * (max - min) + min;
   },
 
-  randomValueRounded: function (min, max) {
+  randomValueRounded: function (min: number, max: number) {
     return Math.round(utils.randomValue(min, max));
   },
 
-  randomRoll: function (percent) {
+  randomRoll: function (percent: number) {
     return utils.randomValueRounded(1, 100) <= percent;
   },
 
@@ -38,14 +105,14 @@ const utils = {
     return (Math.random() + 1).toString(36).substring(7);
   },
 
-  colToLeftPosition: function (col) {
+  colToLeftPosition: function (col: number) {
     return (
       Sizing.BOX_TILE_SPACE +
       (col * Sizing.BOX_TILE_SPACE + col * Sizing.BOX_TILE_SIZE)
     );
   },
 
-  rowToTopPosition: function (row) {
+  rowToTopPosition: function (row: number) {
     return (
       Sizing.SCOREBOARD_HEIGHT +
       Sizing.BOX_TILE_SPACE +
@@ -53,7 +120,7 @@ const utils = {
     );
   },
 
-  hitsToColor: function (hits) {
+  hitsToColor: function (hits: number) {
     if (hits <= 10) {
       return Colors.YELLOW;
     } else if (hits <= 20) {
@@ -70,12 +137,13 @@ const utils = {
     return Colors.TEAL;
   },
 
-  newGameEntities: function (topScore, mode) {
+  newGameEntities: (topScore: number, mode: GameMode): GameEntities => {
     return {
       floor: {
+        current_hits: 0,
         total_hits: 0,
         height: Sizing.FLOOR_HEIGHT,
-        renderer: <Floor />,
+        renderer: Floor,
       },
       scorebar: {
         height: Sizing.SCOREBOARD_HEIGHT,
@@ -87,7 +155,15 @@ const utils = {
         new_balls: 0,
         balls_in_play: 0,
         score: 0,
-        renderer: <ScoreBar />,
+        renderer: ScoreBar,
+        balls_returned: 0,
+      },
+      speedbutton: {
+        available: false,
+        speed: 1,
+        row: 0,
+        column: 7,
+        renderer: SpeedUpButton,
       },
       ball: {
         color: 'white',
@@ -99,19 +175,13 @@ const utils = {
         ),
         speed: utils.newPosition(1.0, 1.0),
         direction: utils.newPosition(0, 0),
-        renderer: <Ball />,
-      },
-      speedbutton: {
-        available: false,
-        speed: 1,
-        row: 0,
-        column: 7,
-        renderer: <SpeedUpButton />,
+        renderer: Ball,
       },
     };
   },
 
-  initializeGameSizing: function () {
+  initializeGameSizing: () => {
+    // TODO: Refactor this method to share values via a Context API instead
     let width = Dimensions.get('window').width;
     let height = Dimensions.get('window').height;
     Sizing.FLOOR_HEIGHT = height - Sizing.FLOOR_HEIGHT_SIZE;
